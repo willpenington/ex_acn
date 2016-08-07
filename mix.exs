@@ -2,7 +2,7 @@ defmodule EAcn.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :eacn,
+    [app: :ex_acn,
      version: "0.1.0",
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
@@ -15,7 +15,7 @@ defmodule EAcn.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [applications: [:logger],
-     mod: {EAcn, []}]
+     mod: {ExACN, []}]
   end
 
   # Dependencies can be Hex packages:

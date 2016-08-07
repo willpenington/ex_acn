@@ -1,6 +1,6 @@
-# EAcn
+# ExACN
 
-An implementation of ACN (ANSI E1.17), the entertainment industry control protocol suite for elixir.
+An implementation of ACN (ANSI E1.17), the entertainment industry control protocol suite for Elixir.
 
 
 

@@ -1,4 +1,4 @@
-defmodule EAcn do
+defmodule ExACN do
   use Application
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
@@ -14,7 +14,7 @@ defmodule EAcn do
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: EAcn.Supervisor]
+    opts = [strategy: :one_for_one, name: ExACN.Supervisor]
     Supervisor.start_link(children, opts)
   end
 end
