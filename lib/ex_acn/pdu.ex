@@ -8,7 +8,7 @@ defmodule ExACN.PDU do
   defp build_body(pdu, previous) do
     [:vector, :header, :data]
     |> Enum.map(fn field -> {Map.get(pdu, field), Map.get(previous, field)} end)
-    |> Enum.filter(fn {current, previous} -> current == previous end)
+    |> Enum.filter(fn {current, previous} -> current != previous end)
     |> Enum.map(fn {current, previous} -> current end)
     |> Enum.join
   end
