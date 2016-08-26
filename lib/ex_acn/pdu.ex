@@ -1,5 +1,10 @@
 defmodule ExACN.PDU do
   defstruct vector: <<>>, header: <<>>, data: <<>>
+  @moduledoc """
+  Packet Data Unit encoding
+
+  Common functions for processing the PDU format used across the 
+  """
 
   defp build_body(pdu, nil) do
     pdu.vector <> pdu.header <> pdu.data
@@ -45,32 +50,37 @@ defmodule ExACN.PDU do
     << flags::bits, encoded_length::size(encoded_length_bits), body::bytes>>
   end
 
-  def extract_vector(body, 1, _, _, previous) do
+  def pack_seq(pdus) do
+    {data, _} = Enum.reduce(pdus, {<<>>, nil}, fn(pdu, {data, prev}) -> {data <> pack(pdu, prev), pdu} end)
+    data
+  end
+
+  defp extract_vector(body, 1, _, _, previous) do
     {previous.vector, body}
   end
 
-  def extract_vector(body, 0, length, vec_length, _) do
+  defp extract_vector(body, 0, length, vec_length, _) do
     header_and_data_length = length - vec_length
     << vector::binary-size(vec_length), header_and_data::binary-size(header_and_data_length) >> = body
     {vector, header_and_data}
   end
 
-  def extract_header_and_data(header_and_data, _, header_length, 0, 0) do
+  defp extract_header_and_data(header_and_data, _, header_length, 0, 0) do
     header_size = header_length.(header_and_data)
     << header::binary-size(header_size), data::binary >> = header_and_data
     {header, data}
   end
 
-  def extract_header_and_data(header_and_data, previous, _, 1, 0) do
+  defp extract_header_and_data(header_and_data, previous, _, 0, 1) do
     {header_and_data, previous.data}
   end
 
-  def extract_header_and_data(header_and_data, previous, _, 0, 1) do
-    { previous.header, header_and_data }
+  defp extract_header_and_data(header_and_data, previous, _, 1, 0) do
+    {previous.header, header_and_data}
   end
 
-  def extract_header_and_data(_, previous, _, 1, 1) do
-    { previous.header, previous.data }
+  defp extract_header_and_data(_, previous, _, 1, 1) do
+    {previous.header, previous.data}
   end
 
   def unpack(encoded, previous, vec_length, header_length) when is_integer(header_length) do
@@ -92,7 +102,23 @@ defmodule ExACN.PDU do
 
     pdu = %ExACN.PDU{vector: vector, header: header, data: data}
 
-
     {:ok, pdu, tail}
+  end
+
+  def unpack_seq(<<>>, _, _) do
+    []
+  end
+
+  def unpack_seq(encoded, vec_length, header_length) do
+    unpack_seq(encoded, vec_length, header_length, [], nil)
+  end
+
+  def unpack_seq(encoded, vec_length, header_length, acc, prev) do
+    {:ok, pdu, tail} = unpack(encoded, prev, vec_length, header_length)
+    seq = [pdu | acc]
+    case tail do
+      <<>> -> Enum.reverse(seq)
+      _ -> unpack_seq(tail, vec_length, header_length, seq, pdu)
+    end
   end
 end
