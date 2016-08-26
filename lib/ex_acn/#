@@ -55,24 +55,6 @@ defmodule ExACN.PDU do
     {vector, header_and_data}
   end
 
-  def extract_header_and_data(header_and_data, _, header_length, 0, 0) do
-    header_size = header_length.(header_and_data)
-    << header::binary-size(header_size), data::binary >> = header_and_data
-    {header, data}
-  end
-
-  def extract_header_and_data(header_and_data, previous, _, 1, 0) do
-    {header_and_data, previous.data}
-  end
-
-  def extract_header_and_data(header_and_data, previous, _, 0, 1) do
-    { previous.header, header_and_data }
-  end
-
-  def extract_header_and_data(_, previous, _, 1, 1) do
-    { previous.header, previous.data }
-  end
-
   def unpack(encoded, previous, vec_length, header_length) when is_integer(header_length) do
     unpack(encoded, previous, vec_length, fn _ -> header_length end)
   end
@@ -87,8 +69,8 @@ defmodule ExACN.PDU do
 
     {vector, header_and_data} = extract_vector(body, vector_flag, body_bytes, vec_length, previous)
 
-
-    {header, data} = extract_header_and_data(header_and_data, previous, header_length, header_flag, data_flag)
+    header_size = header_length.(header_and_data)
+    << header::binary-size(header_size), data::binary >> = header_and_data
 
     pdu = %ExACN.PDU{vector: vector, header: header, data: data}
 

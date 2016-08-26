@@ -7,8 +7,8 @@ defmodule PDUTest do
   @encoded_1 << 0, 10, 12, 43, 95, 55, 84, 10, 99, 6 >>
   @decoded_1 %ExACN.PDU{vector: << 12, 43 >>, header: << 95, 55, 84 >>, data: << 10, 99, 6 >>}
 
-  @encoded_2 << 64, 9, 45, 93, 77, 12, 54, 32, 90 >>
-  @decoded_2 %ExACN.PDU{vector: << 12, 43 >>, header: << 45, 93, 77>>, data: << 12, 54, 32, 90 >>}
+  @encoded_2 << 64, 9, 45, 93, 77, 12, 54, 0, 90 >>
+  @decoded_2 %ExACN.PDU{vector: << 12, 43 >>, header: << 45, 93, 77>>, data: << 12, 54, 0, 90 >>}
 
   test "Encode a simple PDU without a previous packet" do
     assert pack(@decoded_1, nil) == @encoded_1
@@ -16,5 +16,13 @@ defmodule PDUTest do
 
   test "Encode a simple PDU with a previous packet" do
     assert pack(@decoded_2, @decoded_1) == @encoded_2
+  end
+
+  test "Decode a simple PDU without a previous packet" do
+    assert unpack(@encoded_1, nil, 2, 3) == {:ok, @decoded_1, <<>>}
+  end
+
+  test "Decode a simple PDU with a previous packet" do
+    assert unpack(@encoded_2, @decoded_1, 2, 3) == {:ok, @decoded_2, <<>>}
   end
 end
