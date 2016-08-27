@@ -1,4 +1,5 @@
 # ExACN
+[![Build Status](https://travis-ci.org/willpenington/ex_acn.svg?branch=master)](https://travis-ci.org/willpenington/ex_acn)
 
 An implementation of ACN (ANSI E1.17), the entertainment industry control protocol suite for Elixir.
 
