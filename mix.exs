@@ -5,9 +5,12 @@ defmodule EAcn.Mixfile do
     [app: :ex_acn,
      version: "0.1.0",
      elixir: "~> 1.3",
+     source_url: "https://github.com/willpenington/ex_acn",
+     homepage_url: "https://github.com/willpenington/ex_acn",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps()]
+     deps: deps(),
+     docs: [extras: ["README.md"]]]
   end
 
   # Configuration for the OTP application
@@ -28,6 +31,7 @@ defmodule EAcn.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    [{:credo, "~> 0.4", only: [:dev, :test]}]
+    [{:credo, "~> 0.4", only: [:dev, :test]},
+     {:ex_doc, "~> 0.12", only: :dev}]
   end
 end
