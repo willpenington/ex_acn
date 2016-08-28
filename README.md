@@ -8,6 +8,13 @@ ACN is a protocol developed by the entertainment industry to control lighting eq
 stage systems. It is also interesting as an IoT control protocol for large low latency control
 systems within private networks.
 
+### Interesting Features of ACN
+Some of the reasons beyond compatibility with lighting equipment that ACN is interesting:
+ - Packing multiple small packets into a single UDP packet
+ - TCP style garunteed delivery and UDP style send and forget, mixed together seemlessly (SDT)
+ - Common device management and monitoring protocol (DMT)
+ - System for describing devices for interoperability (DDL) 
+
 ### Standards Documents
 The specifications are defined by PLASA, the professional association for lighting and audio
 technicians acting, and accredited by ANSI. They are published for free (if you give an email
