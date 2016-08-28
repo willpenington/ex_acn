@@ -7,6 +7,8 @@ defmodule ExACN.PDU do
   specification
   """
 
+  alias ExACN.PDU.Flags
+
   @type t :: %ExACN.PDU{vector: binary(), header: binary(), data: binary()}
 
   @spec build_body(t, t) :: binary()
@@ -22,20 +24,6 @@ defmodule ExACN.PDU do
     |> Enum.join
   end
 
-  @spec length_bits(1 | 2) :: integer()
-  defp length_bits(length_flag) do
-    case length_flag do
-      1 -> 20
-      0 -> 12
-    end
-  end
-
-  defp preamble_bytes(length_flag) do
-    case length_flag do
-      1 -> 3
-      0 -> 2
-    end
-  end
 
   @doc ~S"""
   Encode a single PDU into binary.
@@ -44,21 +32,21 @@ defmodule ExACN.PDU do
   """
   @spec pack_single(t, t | nil) :: binary()
   def pack_single(pdu, previous \\ nil) do
-    vector_flag = if previous != nil && pdu.vector == previous.vector, do: 1, else: 0
-    header_flag = if previous != nil && pdu.header == previous.header, do: 1, else: 0
-    data_flag = if previous != nil && pdu.data == previous.data, do: 1, else: 0
 
     body = build_body(pdu, previous)
+    body_length = byte_size(body)
 
-    length = byte_size(body)
-    length_flag = if length > round(:math.pow(2, 12)) - 3, do: 1, else: 0 # less one for binary encoding and two for the preamble
+    vector_flag = previous != nil && pdu.vector == previous.vector
+    header_flag = previous != nil && pdu.header == previous.header
+    data_flag = previous != nil && pdu.data == previous.data
+    length_flag = body_length > round(:math.pow(2, 12)) - 3 # less one for binary encoding and two for the preamble
 
-    flags = << length_flag :: size(1), vector_flag :: size(1), header_flag :: size(1), data_flag :: size(1) >>
+    flags = %Flags{length: length_flag, vector: vector_flag, header: header_flag, data: data_flag}
 
-    encoded_length_bits = length_bits(length_flag)
-    encoded_length = length + preamble_bytes(length_flag)
+    encoded_length_bits = Flags.length_bits(flags)
+    encoded_length = body_length + Flags.preamble_bytes(flags)
  
-    << flags::bits, encoded_length::size(encoded_length_bits), body::bytes>>
+    << Flags.encode_flags(flags)::bits, encoded_length::size(encoded_length_bits), body::bytes>>
   end
 
   @doc ~S"""
@@ -70,32 +58,29 @@ defmodule ExACN.PDU do
     data
   end
 
-  defp extract_vector(body, 1, _, _, previous) do
-    {previous.vector, body}
+  @spec unpack_body(binary(), Flags.t, t, integer(), integer() | (binary() -> integer())) :: t
+  defp unpack_body(data, flags, nil, vec_length, header_length) do
+    unpack_body(data, flags, %ExACN.PDU{}, vec_length, header_length)
   end
 
-  defp extract_vector(body, 0, length, vec_length, _) do
-    header_and_data_length = length - vec_length
-    << vector::binary-size(vec_length), header_and_data::binary-size(header_and_data_length) >> = body
-    {vector, header_and_data}
+  defp unpack_body(data, flags = %Flags{vector: false}, prev, vec_length, header_length) do
+    << vector::binary-size(vec_length), tail::binary >> = data
+    unpack_body(tail, %{flags | vector: true}, %{prev | vector: vector}, vec_length, header_length)
   end
 
-  defp extract_header_and_data(header_and_data, _, header_length, 0, 0) do
-    header_size = header_length.(header_and_data)
-    << header::binary-size(header_size), data::binary >> = header_and_data
-    {header, data}
+  defp unpack_body(data, flags = %Flags{header: false}, prev, _, header_length) do
+    header_length_actual = header_length.(data)
+    << header::binary-size(header_length_actual), tail::binary >> = data
+
+    unpack_body(tail, %{flags | header: true}, %{prev | header: header}, nil, nil)
   end
 
-  defp extract_header_and_data(header_and_data, previous, _, 0, 1) do
-    {header_and_data, previous.data}
+  defp unpack_body(data, flags = %Flags{data: false}, prev, _, _) do
+    unpack_body(<<>>, %{flags | data: true}, %{prev | data: data}, nil, nil)
   end
 
-  defp extract_header_and_data(header_and_data, previous, _, 1, 0) do
-    {previous.header, header_and_data}
-  end
-
-  defp extract_header_and_data(_, previous, _, 1, 1) do
-    {previous.header, previous.data}
+  defp unpack_body(_, _, prev, _, _) do
+    prev
   end
 
   @doc ~S"""
@@ -110,19 +95,20 @@ defmodule ExACN.PDU do
   end
 
   def unpack_single(encoded, previous, vec_length, header_length) do
-    <<length_flag::size(1), vector_flag::size(1), header_flag::size(1), data_flag::size(1), _::bits >> = encoded
-    length_bits_encoded = length_bits(length_flag)
+    # Extract flags
+    flags = Flags.decode_flags(encoded)
+
+    # Calculate the length
+    length_bits_encoded = Flags.length_bits(flags)
     << _::bits-size(4), length::size(length_bits_encoded), _::binary >> = encoded
-    preamble_bytes_encoded = preamble_bytes(length_flag)
+    preamble_bytes_encoded = Flags.preamble_bytes(flags)
     body_bytes = length - preamble_bytes_encoded
+
+    # Extract the body
     << _::bytes-size(preamble_bytes_encoded), body::binary-size(body_bytes), tail::binary >> = encoded
 
-    {vector, header_and_data} = extract_vector(body, vector_flag, body_bytes, vec_length, previous)
-
-
-    {header, data} = extract_header_and_data(header_and_data, previous, header_length, header_flag, data_flag)
-
-    pdu = %ExACN.PDU{vector: vector, header: header, data: data}
+    # Unpack the body
+    pdu = unpack_body(body, flags, previous, vec_length, header_length)
 
     {:ok, pdu, tail}
   end
