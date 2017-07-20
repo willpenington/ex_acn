@@ -32,10 +32,10 @@ defmodule PDUTest do
     String.duplicate("a", @vlong_length - 8)
   end
   defp encoded_vlong do
-    << 128 + 12, 23, 43, 54, 99, 12, 0, 33 >> <> vlong_data
+    << 128 + 12, 23, 43, 54, 99, 12, 0, 33 >> <> vlong_data()
   end
   defp decoded_vlong do
-    %ExACN.PDU{vector: << 54, 99 >>, header: << 12, 0, 33 >>, data: vlong_data}
+    %ExACN.PDU{vector: << 54, 99 >>, header: << 12, 0, 33 >>, data: vlong_data()}
   end
 
   test "Encode a simple PDU without a previous packet" do
@@ -59,11 +59,11 @@ defmodule PDUTest do
   end
 
   test "Encode a long PDU" do
-    assert pack_single(decoded_long, nil) == encoded_long
+    assert pack_single(decoded_long(), nil) == encoded_long()
   end
 
   test "Encode a very long PDU" do
-    assert pack_single(decoded_vlong, nil) == encoded_vlong
+    assert pack_single(decoded_vlong(), nil) == encoded_vlong()
   end
 
   test "Decode a simple PDU without a previous packet" do
@@ -87,22 +87,22 @@ defmodule PDUTest do
   end
 
   test "Decode a long PDU" do
-    assert unpack_single(encoded_long, nil, 2, 3) == {:ok, decoded_long, <<>>}
+    assert unpack_single(encoded_long(), nil, 2, 3) == {:ok, decoded_long(), <<>>}
   end
 
   test "Decode a very long PDU" do
-    assert unpack_single(encoded_vlong, nil, 2, 3) == {:ok, decoded_vlong, <<>>}
+    assert unpack_single(encoded_vlong(), nil, 2, 3) == {:ok, decoded_vlong(), <<>>}
   end
 
   test "Decode a sequence of PDUs" do
-    encoded_seq = @encoded_1 <> @encoded_2 <> @encoded_3 <> @encoded_4 <> @encoded_5 <> encoded_long
-    decoded_seq = [@decoded_1, @decoded_2, @decoded_3, @decoded_4, @decoded_5, decoded_long]
+    encoded_seq = @encoded_1 <> @encoded_2 <> @encoded_3 <> @encoded_4 <> @encoded_5 <> encoded_long()
+    decoded_seq = [@decoded_1, @decoded_2, @decoded_3, @decoded_4, @decoded_5, decoded_long()]
     assert unpack(encoded_seq, 2, 3) == decoded_seq
   end
 
   test "Encode a sequence of PDUs" do
-    encoded_seq = @encoded_1 <> @encoded_2 <> @encoded_3 <> @encoded_4 <> @encoded_5 <> encoded_long
-    decoded_seq = [@decoded_1, @decoded_2, @decoded_3, @decoded_4, @decoded_5, decoded_long]
+    encoded_seq = @encoded_1 <> @encoded_2 <> @encoded_3 <> @encoded_4 <> @encoded_5 <> encoded_long()
+    decoded_seq = [@decoded_1, @decoded_2, @decoded_3, @decoded_4, @decoded_5, decoded_long()]
     assert pack(decoded_seq) == encoded_seq
   end
 
